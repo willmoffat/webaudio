@@ -20,11 +20,19 @@ function play(note, durationInSecs, onended) {
   var endT = nowT + durationInSecs;
   gainNode.gain.setValueAtTime(0, nowT);
   // Note(wdm) Gain=1 results in distortion when a chord is played.
-  gainNode.gain.linearRampToValueAtTime(0.3, nowT + 0.01);
-  gainNode.gain.linearRampToValueAtTime(0.0, endT - 0.01);
+  gainNode.gain.exponentialRampToValueAtTime(0.30, nowT + 0.01);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, endT - 0.01);
 
   oscNode.start(nowT);
   oscNode.stop(endT);
+
+  // Cancel func.
+  return function() {
+    var nowT = context.currentTime;
+    var endT = nowT + 0.3;
+    gainNode.gain.exponentialRampToValueAtTime(0.01, endT);
+    oscNode.stop(endT);
+  };
 }
 
 function add(letter, label) {
@@ -34,6 +42,7 @@ function add(letter, label) {
 function makeButton(label, freq) {
   var b = document.createElement('button');
   b.innerText = label;
+  b.classList.add('key');
   document.getElementById('keyboard').appendChild(b);
   return b;
 }
@@ -63,50 +72,60 @@ function handleNote(note, isDown) {
     var cls = (correct) ? 'pass' : 'fail';
     // Only update the attempt and the progress bar once.
     if (!currentAttempt.answer) {
+      document.getElementById('next').disabled = false;
       currentAttempt.answer = note;
-      document.getElementById('bar').classList.add(cls);
       addLog(cls);
       currentAttempt.correctNote.btn.classList.add('correct');
     }
     note.btn.classList.add(cls);
-    play(note, 0.5);
+    play(note, 1);
   } else {
     note.btn.classList.remove('pass','fail');
   }
 }
 
 function onKey(e) {
+  if (e.type === 'keydown') {
+    if (e.keyCode === 32) { // Spacebar
+      document.getElementById('repeat').click();
+      stopEvt(e);
+      return;
+    }
+    if (e.keyCode === 13) { // Return
+      document.getElementById('next').click();
+      stopEvt(e);
+      return;
+    }
+  }
+
   var note = key2note[e.keyCode];
   if (note) {
     handleNote(note, e.type === 'keydown');
+    stopEvt(e);
   }
 }
 
-function onAttemptFinished() {
-  currentAttempt.correctNote.btn.className = ''; // Reset highlight.
-  if (!currentAttempt.answer) {
-    addLog();
+function playCorrectNote() {
+  if (currentAttempt.stopNote) {
+    currentAttempt.stopNote();
   }
-  document.getElementById('bar').className='';
-  // TODO(wdm) Why is delay required to cancel css animation.
-  setTimeout(newAttempt,30);
+  var stop = play(currentAttempt.correctNote, ATTEMPT_DURATION);
+  currentAttempt.stopNote = stop;
 }
 
 function newAttempt() {
-  if (document.hidden) { return; }
-  console.log('newAttempt');
-  var $bar = document.getElementById('bar');
-  $bar.classList.add('running');
-  $bar.style.animationDuration = ATTEMPT_DURATION + 's';
-
+  document.getElementById('next').disabled = true;
+  if (currentAttempt) {
+    currentAttempt.correctNote.btn.classList.remove('correct');
+  }
   var keys = Object.keys(key2note);
   var key = keys[Math.floor(Math.random()*keys.length)];
   var note = key2note[key];
-  play(note, ATTEMPT_DURATION, onAttemptFinished);
   currentAttempt = {
     correctNote :note,
     answer: null,
   };
+  playCorrectNote();
 }
 
 function stopEvt(e) {
@@ -115,13 +134,21 @@ function stopEvt(e) {
 }
 
 function onMouse(e) {
-  if (e.target.nodeName !== 'BUTTON') {
+  if (!e.target.classList.contains('key')) {
     return;
   }
   stopEvt(e);
   var label = e.target.innerText;
   var note = label2note[label];
   handleNote(note, e.type === 'mousedown' || e.type === 'touchstart');
+}
+
+function onNext() {
+  newAttempt();
+}
+
+function onRepeat() {
+  playCorrectNote();
 }
 
 document.addEventListener('keydown', onKey);
@@ -133,5 +160,8 @@ if (navigator.maxTouchPoints) {
   document.addEventListener('mousedown', onMouse);
   document.addEventListener('mouseup', onMouse);
 }
+
+document.getElementById('next').addEventListener('click', onNext);
+document.getElementById('repeat').addEventListener('click', onRepeat);
 
 newAttempt();
