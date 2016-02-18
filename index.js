@@ -1,6 +1,6 @@
 var context = new AudioContext();
 
-var ATTEMPT_DURATION = 8; // How long each target note lasts.
+var ATTEMPT_DURATION = 4; // How long each target note lasts.
 var currentAttempt; // The game state.
 
 // Note(wdm) Cannot call play() twice on an oscillator.
@@ -34,7 +34,7 @@ function add(letter, label) {
 function makeButton(label, freq) {
   var b = document.createElement('button');
   b.innerText = label;
-  document.body.appendChild(b);
+  document.getElementById('keyboard').appendChild(b);
   return b;
 }
 
@@ -51,6 +51,12 @@ var label2note = {};
   label2note[label] = note;
 });
 
+function addLog(cls) {
+  var d = document.createElement('span');
+  d.className = cls;
+  document.getElementById('log').appendChild(d);
+}
+
 function handleNote(note, isDown) {
   if (isDown) {
     var correct = (note === currentAttempt.correctNote);
@@ -59,6 +65,7 @@ function handleNote(note, isDown) {
     if (!currentAttempt.answer) {
       currentAttempt.answer = note;
       document.getElementById('bar').classList.add(cls);
+      addLog(cls);
     }
     note.btn.classList.add(cls);
     play(note, 0.5);
@@ -75,8 +82,8 @@ function onKey(e) {
 }
 
 function onAttemptFinished() {
-  if (currentAttempt.answer === currentAttempt.correctNote) {
-    console.log('well done');
+  if (!currentAttempt.answer) {
+    addLog();
   }
   document.getElementById('bar').className='';
   // TODO(wdm) Why is delay required to cancel css animation.
