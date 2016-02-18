@@ -61,6 +61,7 @@ function onKey(e) {
 }
 
 function rndNote() {
+  if (document.hidden) { return; }
   var keys = Object.keys(key2note);
   playingKey= keys[Math.floor(Math.random()*keys.length)];
   play(key2note[playingKey].freq, 8);
