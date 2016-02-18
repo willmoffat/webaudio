@@ -1,13 +1,15 @@
 var context = new AudioContext();
 
-var playingNote; // Keycode of correct button to press.
+var currentAttempt; // The game state.
 
 // Note(wdm) Cannot call play() twice on an oscillator.
 
-function play(note, durationInSecs) {
+function play(note, durationInSecs, onended) {
   console.log('play', note, durationInSecs);
+
   var oscNode = context.createOscillator();
   oscNode.frequency.value = note.freq;
+  oscNode.onended = onended;
 
   var gainNode = context.createGain();
   oscNode.connect(gainNode);
@@ -50,7 +52,10 @@ var label2note = {};
 
 function handleNote(note, isDown) {
   if (isDown) {
-    var cls = (note === playingNote) ? 'pressedOK' : 'pressedWrong';
+    if (!currentAttempt.answer) {
+      currentAttempt.answer = note;
+    }
+    var cls = (note === currentAttempt.correctNote) ? 'pressedOK' : 'pressedWrong';
     note.btn.classList.add(cls);
     play(note, 0.5);
   } else {
@@ -65,21 +70,29 @@ function onKey(e) {
   }
 }
 
-function rndNote() {
+function onAttemptFinished() {
+  if (currentAttempt.answer === currentAttempt.correctNote) {
+    console.log('well done');
+  }
+  newAttempt();
+}
+
+function newAttempt() {
   if (document.hidden) { return; }
+  console.log('newAttempt');
   var keys = Object.keys(key2note);
   var key = keys[Math.floor(Math.random()*keys.length)];
-  playingNote = key2note[key];
-  play(playingNote, 8);
-  console.log(playingNote);
+  var note = key2note[key];
+  play(note, 8, onAttemptFinished);
+  currentAttempt = {
+    correctNote :note,
+    answer: null,
+  };
 }
 
-function quiz() {
-  rndNote();
-  setInterval(rndNote, 9*1000);
-}
 
-quiz();
+newAttempt();
+
 
 function stopEvt(e) {
   e.preventDefault();
