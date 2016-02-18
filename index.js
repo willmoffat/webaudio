@@ -1,5 +1,6 @@
 var context = new AudioContext();
 
+var ATTEMPT_DURATION = 8; // How long each target note lasts.
 var currentAttempt; // The game state.
 
 // Note(wdm) Cannot call play() twice on an oscillator.
@@ -52,10 +53,13 @@ var label2note = {};
 
 function handleNote(note, isDown) {
   if (isDown) {
+    var correct = (note === currentAttempt.correctNote);
+    var cls = (correct) ? 'pass' : 'fail';
+    // Only update the attempt and the progress bar once.
     if (!currentAttempt.answer) {
       currentAttempt.answer = note;
+      document.getElementById('bar').classList.add(cls);
     }
-    var cls = (note === currentAttempt.correctNote) ? 'pressedOK' : 'pressedWrong';
     note.btn.classList.add(cls);
     play(note, 0.5);
   } else {
@@ -74,25 +78,27 @@ function onAttemptFinished() {
   if (currentAttempt.answer === currentAttempt.correctNote) {
     console.log('well done');
   }
-  newAttempt();
+  document.getElementById('bar').className='';
+  // TODO(wdm) Why is delay required to cancel css animation.
+  setTimeout(newAttempt,30);
 }
 
 function newAttempt() {
   if (document.hidden) { return; }
   console.log('newAttempt');
+  var $bar = document.getElementById('bar');
+  $bar.classList.add('running');
+  $bar.style.animationDuration = ATTEMPT_DURATION + 's';
+
   var keys = Object.keys(key2note);
   var key = keys[Math.floor(Math.random()*keys.length)];
   var note = key2note[key];
-  play(note, 8, onAttemptFinished);
+  play(note, ATTEMPT_DURATION, onAttemptFinished);
   currentAttempt = {
     correctNote :note,
     answer: null,
   };
 }
-
-
-newAttempt();
-
 
 function stopEvt(e) {
   e.preventDefault();
@@ -118,3 +124,5 @@ if (navigator.maxTouchPoints) {
   document.addEventListener('mousedown', onMouse);
   document.addEventListener('mouseup', onMouse);
 }
+
+newAttempt();
