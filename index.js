@@ -37,7 +37,7 @@ function makeButton(label, freq) {
 
 var key2note = {};
 var label2note = {};
-['A C4', 'S D4', 'D E4', 'F F4', 'G G4', 'H A4', 'J B4', 'K C5'].forEach(function(entry) {
+['A C5', 'S D5', 'D E5', 'F F5', 'G G5', 'H A5', 'J B5', 'K C6'].forEach(function(entry) {
   var r = entry.split(' ');
   var key = r[0].charCodeAt(0);
   var label = r[1];
