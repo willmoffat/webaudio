@@ -1,13 +1,13 @@
 var context = new AudioContext();
 
-var playingKey; // Keycode of correct button to press.
+var playingNote; // Keycode of correct button to press.
 
 // Note(wdm) Cannot call play() twice on an oscillator.
 
-function play(freq, durationInSecs) {
-  console.log('play', freq, durationInSecs);
+function play(note, durationInSecs) {
+  console.log('play', note, durationInSecs);
   var oscNode = context.createOscillator();
-  oscNode.frequency.value = freq;
+  oscNode.frequency.value = note.freq;
 
   var gainNode = context.createGain();
   oscNode.connect(gainNode);
@@ -31,41 +31,47 @@ function add(letter, label) {
 function makeButton(label, freq) {
   var b = document.createElement('button');
   b.innerText = label;
-  b.onclick = function(e) { play(freq, 0.5); };
   document.body.appendChild(b);
   return b;
 }
 
 var key2note = {};
+var label2note = {};
 ['A C4', 'S D4', 'D E4', 'F F4', 'G G4', 'H A4', 'J B4', 'K C5'].forEach(function(entry) {
   var r = entry.split(' ');
   var key = r[0].charCodeAt(0);
   var label = r[1];
   var freq = notes[label];
   var btn = makeButton(label, freq);
-  key2note[key] = {freq:freq, label:label, btn:btn};
+  var note = {freq:freq, label:label, btn:btn};
+  key2note[key] = note;
+  label2note[label] = note;
 });
 
+function handleNote(note, isDown) {
+  if (isDown) {
+    var cls = (note === playingNote) ? 'pressedOK' : 'pressedWrong';
+    note.btn.classList.add(cls);
+    play(note, 0.5);
+  } else {
+    note.btn.className=''; // Clear all classes.
+  }
+}
 
 function onKey(e) {
   var note = key2note[e.keyCode];
   if (note) {
-    if (e.type === 'keydown') {
-      note.btn.click();
-      var cls = (e.keyCode === Number(playingKey)) ? 'pressedOK' : 'pressedWrong';
-      note.btn.classList.add(cls);
-    } else {
-      note.btn.className=''; // Clear all classes.
-    }
+    handleNote(note, e.type === 'keydown');
   }
 }
 
 function rndNote() {
   if (document.hidden) { return; }
   var keys = Object.keys(key2note);
-  playingKey= keys[Math.floor(Math.random()*keys.length)];
-  play(key2note[playingKey].freq, 8);
-  console.log(playingKey);
+  var key = keys[Math.floor(Math.random()*keys.length)];
+  playingNote = key2note[key];
+  play(playingNote, 8);
+  console.log(playingNote);
 }
 
 function quiz() {
@@ -75,5 +81,27 @@ function quiz() {
 
 quiz();
 
+function stopEvt(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function onMouse(e) {
+  if (e.target.nodeName !== 'BUTTON') {
+    return;
+  }
+  stopEvt(e);
+  var label = e.target.innerText;
+  var note = label2note[label];
+  handleNote(note, e.type === 'mousedown' || e.type === 'touchstart');
+}
+
 document.addEventListener('keydown', onKey);
 document.addEventListener('keyup', onKey);
+if (navigator.maxTouchPoints) {
+  document.addEventListener('touchstart', onMouse);
+  document.addEventListener('touchend', onMouse);
+} else  {
+  document.addEventListener('mousedown', onMouse);
+  document.addEventListener('mouseup', onMouse);
+}
