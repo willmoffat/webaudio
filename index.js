@@ -66,11 +66,12 @@ function handleNote(note, isDown) {
       currentAttempt.answer = note;
       document.getElementById('bar').classList.add(cls);
       addLog(cls);
+      currentAttempt.correctNote.btn.classList.add('correct');
     }
     note.btn.classList.add(cls);
     play(note, 0.5);
   } else {
-    note.btn.className=''; // Clear all classes.
+    note.btn.classList.remove('pass','fail');
   }
 }
 
@@ -82,6 +83,7 @@ function onKey(e) {
 }
 
 function onAttemptFinished() {
+  currentAttempt.correctNote.btn.className = ''; // Reset highlight.
   if (!currentAttempt.answer) {
     addLog();
   }
